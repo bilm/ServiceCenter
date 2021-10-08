@@ -1,6 +1,463 @@
-public struct ServiceCenter {
-    public private(set) var text = "Hello, World!"
+//
+//  ServiceCenter.swift
+//  Goth
+//
+//  Created by Bil Moorhead on 9/19/21.
+//
 
-    public init() {
-    }
+import Foundation
+
+import Logger
+import UIKit
+
+fileprivate let logger = Logger[ServiceCenter.self]
+
+public actor ServiceCenter {
+	
+	public typealias Key = String
+	public typealias Substitutions = [Key: String]
+	public typealias Queries = [Key: Any]
+	public typealias QueryItems = [URLQueryItem]
+
+	public typealias Output = (data: Data, response: URLResponse)
+	
+	public enum Failures: Error {
+		
+		case notImplementedYet(String)
+		case notAvailableYet(String)
+		case discontinued(String)
+		case deprecated(String)
+		case invalidEndpoint
+		case invalidService
+		case outOfScope(String)
+		
+	}
+	public enum HTTPStatus: Error, CustomStringConvertible {
+		
+		case notOk(Int, Output)
+		case continued(Int, Output)
+		case redirect(Int, Output)
+		case client(Int, Output)
+		case server(Int, Output)
+		
+		public var description: String {
+
+			func message(statusCode: Int, output: Output) ->String {
+				
+				let message = String(data: output.data, encoding: .utf8) ?? "«»"
+				return "\(statusCode) - \(message)"
+				
+			}
+			switch self {
+				
+			case let .notOk(statusCode, output): return message(statusCode: statusCode, output: output)
+			case let .continued(statusCode, output): return message(statusCode: statusCode, output: output)
+			case let .redirect(statusCode, output): return message(statusCode: statusCode, output: output)
+			case let .client(statusCode, output): return message(statusCode: statusCode, output: output)
+			case let .server(statusCode, output): return message(statusCode: statusCode, output: output)
+
+			}
+		}
+	}
+
+	
+	public let session: URLSession
+	public var credential: URLCredential
+	public func update(credential: URLCredential) { self.credential = credential }
+	
+	public var mainURL: URL
+	public func update(url: URL) { self.mainURL = url }
+	
+	public static var superuser: URLCredential { URLCredential(user: "superuser", password: "5up3ru53r", persistence: .forSession) }
+	
+	public var basicAuth: String {
+		
+		let user = credential.user ?? "«noone»"
+		let pswd = credential.password ?? "«»"
+		let userPswd = "\(user):\(pswd)"
+		
+		return "Basic \(Data(userPswd.utf8).base64EncodedString())"
+		
+	}
+	
+	public var state: ServiceState
+	public func update(state: ServiceState) { self.state = state }
+	
+	public typealias ErrorModel = Error & Decodable
+	public var errorModel: ErrorModel.Type? = nil
+	
+	//
+	
+	public init(configuration: URLSessionConfiguration = .default, credential: URLCredential = ServiceCenter.superuser, mainURL: URL, state: ServiceState = EmptyServiceState()) {
+		
+		self.session = URLSession(configuration: configuration)
+		self.credential = credential
+		self.mainURL = mainURL
+		self.state = state
+		
+	}
+
+}
+
+//
+// MARK: Data - Public 
+//
+
+extension ServiceCenter {
+	
+	public func data(
+		_ service: Service,
+		body: Data? = nil,
+		mime: String? = nil,
+		substitutions: Substitutions = [:],
+		queryItems: QueryItems = [],
+		timeoutInterval: TimeInterval = 60.0
+	)
+	async throws ->Data {
+
+		try await data(
+			ServiceRequest(
+				service: service,
+				body: body,
+				mime: mime,
+				substitutions: substitutions,
+				queryItems: queryItems,
+				timeoutInterval: timeoutInterval
+			)
+		)
+		
+	}
+
+	public func data(
+		_ service: Service,
+		bodies: [Data],
+		mime: String? = nil,
+		substitutions: Substitutions = [:],
+		queryItems: QueryItems = [],
+		timeoutInterval: TimeInterval = 60.0
+	)
+	async throws ->[Data] {
+		
+		try await data(
+			
+			bodies.map {
+				
+				ServiceRequest(
+					service: service,
+					body: $0,
+					mime: mime,
+					substitutions: substitutions,
+					queryItems: queryItems,
+					timeoutInterval: timeoutInterval
+				)
+
+			}
+			
+		)
+		
+	}
+	
+}
+
+//	MARK: Model - Public
+extension ServiceCenter {
+	
+	public func model<Model>(
+		_ service: Service,
+		body: Data? = nil,
+		mime: String? = nil,
+		substitutions: Substitutions = [:],
+		queryItems: QueryItems = [],
+		timeoutInterval: TimeInterval = 60.0,
+		logger: Logger? = nil
+	) async throws ->Model 
+	where Model: Codable, Model: ServiceModel {
+		
+		return try await model(
+			ServiceRequest(
+				service: service,
+				body: body,
+				mime: mime,
+				substitutions: substitutions,
+				queryItems: queryItems,
+				timeoutInterval: timeoutInterval
+			)
+		)
+
+	}
+
+	public func model<Model>(
+		_ service: Service,
+		bodies: [Data],
+		mime: String? = nil,
+		substitutions: Substitutions = [:],
+		queryItems: QueryItems = [],
+		timeoutInterval: TimeInterval = 60.0,
+		logger: Logger? = nil
+	) async throws ->[Model] 
+	where Model: Codable, Model: ServiceModel {
+		
+		try await model(
+			
+			bodies.map {
+				
+				ServiceRequest(
+					service: service,
+					body: $0,
+					mime: mime,
+					substitutions: substitutions,
+					queryItems: queryItems,
+					timeoutInterval: timeoutInterval
+				)
+
+			},
+			logger: logger
+			
+		)
+		
+	}
+}
+
+
+// MARK: Requests - Private
+extension ServiceCenter {
+	
+	public struct ServiceRequest {
+
+		let service: Service
+		let body: Data?
+		let mime: String?
+		var substitutions: Substitutions = [:]
+		var queryItems: QueryItems = []
+		var timeoutInterval: TimeInterval = 60.0
+		
+		// derivitives
+		var path: String { service.path }
+		func subIn(string: String) ->String { substitutions.subIn(string: string) }
+		
+	}
+	
+	public func data(_ serviceRequest: ServiceRequest) async throws ->Data {
+		
+		defer { logger.debug( "serviced: \(serviceRequest.service.name)") }
+		
+		let urlRequest = try self.urlRequest(serviceRequest: serviceRequest)		
+		let output = try checkStatusCode( await session.data(for: urlRequest) )
+		return output.data
+		
+	}
+	public func model<Model>(_ serviceRequest: ServiceRequest, logger: Logger? = nil) async throws ->Model where Model: Codable, Model: ServiceModel {
+		
+		let data = try await data(serviceRequest)
+		return try decode(data: data, logger: logger)
+		
+	}
+
+}
+
+extension ServiceCenter {
+	
+	public struct Gopher: AsyncSequence, AsyncIteratorProtocol {
+		
+		public typealias Element = Data
+
+		public let center: ServiceCenter
+		public var requests: [ServiceRequest]
+
+		fileprivate var index = 0
+		private mutating func nextRequest() ->ServiceRequest? { 
+			
+			guard index < requests.count else { return nil }
+			defer { index += 1 }
+
+			return requests[index]
+
+		}
+		
+		public mutating func next() async throws -> Data? {
+			
+			guard let request = nextRequest() else { return nil }
+			return try await center.data(request)
+			
+		}
+			
+		public func makeAsyncIterator() -> Gopher { self }
+		
+	}
+	
+	public func data(_ serviceRequests: [ServiceRequest]) async throws ->[Data] {
+		
+		var results: [Data] = []
+		
+		let gopher = Gopher(center: self, requests: serviceRequests)
+		for try await data in gopher {
+			
+			results.append(data)
+			
+		}
+		
+		return results
+		
+	}
+	
+	public func model<Model>(_ serviceRequests: [ServiceRequest], logger: Logger? = nil) async throws ->[Model] where Model: Codable, Model: ServiceModel {
+
+		var results: [Model] = []
+		
+		let gopher = Gopher(
+			center: self,
+			requests: serviceRequests
+		)
+			.map {
+				
+				raw ->Model in
+				try self.decode(data: raw, logger: logger)
+				
+			}
+
+		for try await model: Model in gopher {
+			
+			results.append(model)
+			
+		}
+		
+		return results
+
+	}
+	
+}
+
+extension ServiceCenter {
+	
+	public func decode<Model>(data: Data, logger: Logger? = nil) throws ->Model where Model: Codable, Model: ServiceModel {
+		
+		logger?.debug( String(data: data, encoding: .utf8) ?? "«»")
+		
+		do {
+			switch Model.self {
+				
+			case is Nothing.Type:	return Nothing() as! Model
+			case is Data.Type:		return data as! Model
+			default:				return try JSON.decoderNWK.decode(Model.self, from: data)
+			}
+		}
+		catch {
+			
+			print(String(data: data, encoding: .utf8) ?? "«»")
+			throw error
+			
+		}
+		
+	}
+	
+}
+
+extension ServiceCenter {
+	
+	private func urlRequest(serviceRequest: ServiceRequest) throws ->URLRequest {
+		
+		try urlRequest(
+			from: serviceRequest.service,
+			endpoint: endpoint(serviceRequest: serviceRequest),
+			body: serviceRequest.body,
+			mime: serviceRequest.mime,
+			timeoutInterval: serviceRequest.timeoutInterval
+		)
+		
+	}
+	private func urlRequest(
+		from service: Service,
+		endpoint: URL?,
+		body: Data?,
+		mime: String? = nil,
+		timeoutInterval: TimeInterval = 60.0
+	) throws ->URLRequest {
+		
+		guard let endpoint = endpoint else { throw Failures.invalidEndpoint }
+		var request = URLRequest(url: endpoint, timeoutInterval: timeoutInterval)
+		
+		request.httpMethod = service.method
+		request.setValue(service.accept, forHTTPHeaderField: "Accept")
+		request.setValue((mime ?? service.mime), forHTTPHeaderField: "Content-Type")
+		request.setValue("\(body?.count ?? 0)", forHTTPHeaderField: "Content-Length")
+		request.setValue(basicAuth, forHTTPHeaderField: "Authorization")
+		request.httpBody = body
+		
+		logger.debug( "requested: \(request)" )
+
+		return request
+		
+	}
+	
+}
+
+// MARK: Endpoints - Private
+extension ServiceCenter {
+	
+	private func endpoint(serviceRequest: ServiceRequest) ->URL? {
+		
+		endpoint(
+			from: URL(
+				string: serviceRequest.subIn(string: serviceRequest.path),
+				relativeTo: mainURL
+			),
+			queryItems: serviceRequest.queryItems
+		)
+		
+	}
+	private func endpoint(from url: URL?, queryItems: QueryItems) ->URL? {
+		
+		guard let url = url else { return nil }
+		guard !queryItems.isEmpty else { return url }
+
+		var components = URLComponents(url: url, resolvingAgainstBaseURL: true)
+		components?.queryItems = queryItems
+		return components?.url
+		
+	}
+	
+}
+
+// MARK: Status Codes - Private
+extension ServiceCenter {
+	
+	private func checkStatusCode(_ output: Output) throws ->Output {
+		
+		guard let response = output.response as? HTTPURLResponse else { return output }
+		let statusCode = response.statusCode
+		
+		//
+		//	LINK - https://tools.ietf.org/html/rfc7231#section-6
+		switch statusCode {
+		case 100..<200: throw HTTPStatus.continued(statusCode,output)
+		case 200..<300: return output
+		case 300..<400: throw HTTPStatus.redirect(statusCode,output)
+		case 400..<500: throw HTTPStatus.client(statusCode,output)
+		case 500..<600: throw HTTPStatus.server(statusCode,output)
+		default: 		throw HTTPStatus.notOk(statusCode,output)
+		}
+		//	END-LINK
+		//
+		
+	}
+	
+	private func checkErrorResponse<M>( _ output: Output, errorModel: M.Type) throws ->Output where M: Error & Decodable{
+		
+		do { return try checkStatusCode(output) }
+		catch {
+			
+			let data: Data
+			switch error as? HTTPStatus {
+				
+			case .client(_, let output): data = output.data
+			case .server(_, let output): data = output.data
+				
+			default: throw error
+				
+			}
+			throw try JSON.decoderNWK.decode(errorModel, from: data)
+
+		}
+	}
+
 }

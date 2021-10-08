@@ -1,0 +1,34 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "DateFormats",
+        "repositoryURL": "git@github.com:bilm/DateFormats.git",
+        "state": {
+          "branch": "swift-5_3",
+          "revision": "732aace3b3e1ea6ef0fd7a8ee61f9a3d6609a93c",
+          "version": null
+        }
+      },
+      {
+        "package": "Logger",
+        "repositoryURL": "git@github.com:bilm/Logger.git",
+        "state": {
+          "branch": "swift-5_3",
+          "revision": "c513fd808b8adfc7a6ec21b9a8ebd49ddfe23f1f",
+          "version": null
+        }
+      },
+      {
+        "package": "Metadata",
+        "repositoryURL": "git@github.com:bilm/Metadata.git",
+        "state": {
+          "branch": "swift-5_3",
+          "revision": "eea50dc193039dc33263b414ea6c71f6df818232",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}
