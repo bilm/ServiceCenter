@@ -224,16 +224,27 @@ extension ServiceCenter {
 	
 	public struct ServiceRequest {
 
-		let service: Service
-		let body: Data?
-		let mime: String?
-		var substitutions: Substitutions = [:]
-		var queryItems: QueryItems = []
-		var timeoutInterval: TimeInterval = 60.0
+		public let service: Service
+		public let body: Data?
+		public let mime: String?
+		public var substitutions: Substitutions = [:]
+		public var queryItems: QueryItems = []
+		public var timeoutInterval: TimeInterval = 60.0
 		
 		// derivitives
-		var path: String { service.path }
-		func subIn(string: String) ->String { substitutions.subIn(string: string) }
+		public var path: String { service.path }
+		public func subIn(string: String) ->String { substitutions.subIn(string: string) }
+		
+		public init(service: Service, body: Data? = nil, mime: String? = nil, substitutions: Substitutions = [:], queryItems: QueryItems = [], timeoutInterval: TimeInterval = 60.0) {
+			
+			self.service = service
+			self.body = body
+			self.mime = mime
+			self.substitutions = substitutions
+			self.queryItems = queryItems
+			self.timeoutInterval = timeoutInterval
+			
+		}
 		
 	}
 	
