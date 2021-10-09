@@ -24,6 +24,12 @@ public struct ServiceModelView: View {
 		
     }
 	
+	public init(serviceModel: Binding<ServiceModel?>) {
+		
+		self._serviceModel = serviceModel
+		
+	}
+	
 }
 
 struct ServiceModelView_Previews: PreviewProvider {
