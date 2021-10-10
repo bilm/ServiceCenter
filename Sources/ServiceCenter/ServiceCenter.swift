@@ -349,7 +349,7 @@ extension ServiceCenter {
 				
 			case is Nothing.Type:	return Nothing() as! Model
 			case is Data.Type:		return data as! Model
-			default:				return try JSON.decoderNWK.decode(Model.self, from: data)
+			default:				return try ServiceCenterJSON.decoderNWK.decode(Model.self, from: data)
 			}
 		}
 		catch {
@@ -466,7 +466,7 @@ extension ServiceCenter {
 			default: throw error
 				
 			}
-			throw try JSON.decoderNWK.decode(errorModel, from: data)
+			throw try ServiceCenterJSON.decoderNWK.decode(errorModel, from: data)
 
 		}
 	}

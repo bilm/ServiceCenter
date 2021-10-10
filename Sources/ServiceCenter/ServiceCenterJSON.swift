@@ -8,7 +8,7 @@
 import Foundation
 import DateFormats
 
-public final class JSON {
+public final class ServiceCenterJSON {
 	
 	public static var encoder: JSONEncoder = {
 		
