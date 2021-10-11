@@ -9,6 +9,7 @@ import Foundation
 
 public enum ServiceAuth {
 	
+	case nothing
 	case basic(URLCredential)
 	case bearer(URLCredential)
 	
@@ -16,6 +17,7 @@ public enum ServiceAuth {
 		
 		switch self {
 			
+		case .nothing:					return nil
 		case .basic(let credential):	return credential.basic
 		case .bearer(let credential):	return credential.bearer
 

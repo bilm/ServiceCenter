@@ -74,7 +74,7 @@ public actor ServiceCenter {
 	
 	//
 	
-	public init(configuration: URLSessionConfiguration = .default, auth: ServiceAuth = .superuser, mainURL: URL, state: ServiceState = EmptyServiceState()) {
+	public init(configuration: URLSessionConfiguration = .default, auth: ServiceAuth = .nothing, mainURL: URL, state: ServiceState = EmptyServiceState()) {
 		
 		self.session = URLSession(configuration: configuration)
 		self.auth = auth
@@ -97,6 +97,7 @@ extension ServiceCenter {
 		mime: String? = nil,
 		substitutions: Substitutions = [:],
 		queryItems: QueryItems = [],
+		authorization: ServiceAuth? = nil,
 		timeoutInterval: TimeInterval = 60.0
 	)
 	async throws ->Data {
@@ -108,6 +109,7 @@ extension ServiceCenter {
 				mime: mime,
 				substitutions: substitutions,
 				queryItems: queryItems,
+				authorization: authorization,
 				timeoutInterval: timeoutInterval
 			)
 		)
@@ -120,6 +122,7 @@ extension ServiceCenter {
 		mime: String? = nil,
 		substitutions: Substitutions = [:],
 		queryItems: QueryItems = [],
+		authorization: ServiceAuth? = nil,
 		timeoutInterval: TimeInterval = 60.0
 	)
 	async throws ->[Data] {
@@ -134,6 +137,7 @@ extension ServiceCenter {
 					mime: mime,
 					substitutions: substitutions,
 					queryItems: queryItems,
+					authorization: authorization,
 					timeoutInterval: timeoutInterval
 				)
 
@@ -154,6 +158,7 @@ extension ServiceCenter {
 		mime: String? = nil,
 		substitutions: Substitutions = [:],
 		queryItems: QueryItems = [],
+		authorization: ServiceAuth? = nil,
 		timeoutInterval: TimeInterval = 60.0,
 		logger: Logger? = nil
 	) async throws ->Model 
@@ -166,6 +171,7 @@ extension ServiceCenter {
 				mime: mime,
 				substitutions: substitutions,
 				queryItems: queryItems,
+				authorization: authorization,
 				timeoutInterval: timeoutInterval
 			)
 		)
@@ -178,6 +184,7 @@ extension ServiceCenter {
 		mime: String? = nil,
 		substitutions: Substitutions = [:],
 		queryItems: QueryItems = [],
+		authorization: ServiceAuth? = nil,
 		timeoutInterval: TimeInterval = 60.0,
 		logger: Logger? = nil
 	) async throws ->[Model] 
@@ -193,6 +200,7 @@ extension ServiceCenter {
 					mime: mime,
 					substitutions: substitutions,
 					queryItems: queryItems,
+					authorization: authorization,
 					timeoutInterval: timeoutInterval
 				)
 
@@ -215,19 +223,21 @@ extension ServiceCenter {
 		public let mime: String?
 		public var substitutions: Substitutions = [:]
 		public var queryItems: QueryItems = []
+		public var authorization: ServiceAuth? = nil
 		public var timeoutInterval: TimeInterval = 60.0
 		
 		// derivitives
 		public var path: String { service.path }
 		public func subIn(string: String) ->String { substitutions.subIn(string: string) }
 		
-		public init(service: Service, body: Data? = nil, mime: String? = nil, substitutions: Substitutions = [:], queryItems: QueryItems = [], timeoutInterval: TimeInterval = 60.0) {
+		public init(service: Service, body: Data? = nil, mime: String? = nil, substitutions: Substitutions = [:], queryItems: QueryItems = [], authorization: ServiceAuth? = nil, timeoutInterval: TimeInterval = 60.0) {
 			
 			self.service = service
 			self.body = body
 			self.mime = mime
 			self.substitutions = substitutions
 			self.queryItems = queryItems
+			self.authorization = authorization
 			self.timeoutInterval = timeoutInterval
 			
 		}
@@ -358,6 +368,7 @@ extension ServiceCenter {
 			endpoint: endpoint(serviceRequest: serviceRequest),
 			body: serviceRequest.body,
 			mime: serviceRequest.mime,
+			authorization: serviceRequest.authorization,
 			timeoutInterval: serviceRequest.timeoutInterval
 		)
 		
@@ -367,6 +378,7 @@ extension ServiceCenter {
 		endpoint: URL?,
 		body: Data?,
 		mime: String? = nil,
+		authorization: ServiceAuth?,
 		timeoutInterval: TimeInterval = 60.0
 	) throws ->URLRequest {
 		
@@ -377,7 +389,7 @@ extension ServiceCenter {
 		request.setValue(service.accept, forHTTPHeaderField: "Accept")
 		request.setValue((mime ?? service.mime), forHTTPHeaderField: "Content-Type")
 		
-		auth.authorization.flatMap {
+		(authorization ?? auth).authorization.flatMap {
 			request.setValue($0, forHTTPHeaderField: "Authorization")
 		}
 		
