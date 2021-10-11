@@ -62,36 +62,22 @@ public actor ServiceCenter {
 
 	
 	public let session: URLSession
-	public var credential: URLCredential
-	public func update(credential: URLCredential) { self.credential = credential }
+
+	public var auth: ServiceAuth
+	public func update(auth: ServiceAuth) { self.auth = auth }
 	
 	public var mainURL: URL
 	public func update(url: URL) { self.mainURL = url }
 	
-	public static var superuser: URLCredential { URLCredential(user: "superuser", password: "5up3ru53r", persistence: .forSession) }
-	
-	public var basicAuth: String {
-		
-		let user = credential.user ?? "«noone»"
-		let pswd = credential.password ?? "«»"
-		let userPswd = "\(user):\(pswd)"
-		
-		return "Basic \(Data(userPswd.utf8).base64EncodedString())"
-		
-	}
-	
 	public var state: ServiceState
 	public func update(state: ServiceState) { self.state = state }
 	
-	public typealias ErrorModel = Error & Decodable
-	public var errorModel: ErrorModel.Type? = nil
-	
 	//
 	
-	public init(configuration: URLSessionConfiguration = .default, credential: URLCredential = ServiceCenter.superuser, mainURL: URL, state: ServiceState = EmptyServiceState()) {
+	public init(configuration: URLSessionConfiguration = .default, auth: ServiceAuth = .superuser, mainURL: URL, state: ServiceState = EmptyServiceState()) {
 		
 		self.session = URLSession(configuration: configuration)
-		self.credential = credential
+		self.auth = auth
 		self.mainURL = mainURL
 		self.state = state
 		
@@ -390,8 +376,12 @@ extension ServiceCenter {
 		request.httpMethod = service.method
 		request.setValue(service.accept, forHTTPHeaderField: "Accept")
 		request.setValue((mime ?? service.mime), forHTTPHeaderField: "Content-Type")
+		
+		auth.authorization.flatMap {
+			request.setValue($0, forHTTPHeaderField: "Authorization")
+		}
+		
 		request.setValue("\(body?.count ?? 0)", forHTTPHeaderField: "Content-Length")
-		request.setValue(basicAuth, forHTTPHeaderField: "Authorization")
 		request.httpBody = body
 		
 		logger.debug( "requested: \(request)" )
