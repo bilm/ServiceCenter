@@ -73,16 +73,18 @@ public actor ServiceCenter {
 	public var state: ServiceState
 	public func update(state: ServiceState) { self.state = state }
 	
-	public var history: ServiceHistory? 
+	public var history: ServiceHistory?
+	public func update(history: ServiceHistory?) { self.history = history }
 	
 	//
 	
-	public init(configuration: URLSessionConfiguration = .default, auth: ServiceAuth = .nothing, mainURL: URL, state: ServiceState = EmptyServiceState()) {
+	public init(configuration: URLSessionConfiguration = .default, auth: ServiceAuth = .nothing, mainURL: URL, state: ServiceState = EmptyServiceState(), history: ServiceHistory? = nil) {
 		
 		self.session = URLSession(configuration: configuration)
 		self.auth = auth
 		self.mainURL = mainURL
 		self.state = state
+		self.history = history
 		
 	}
 

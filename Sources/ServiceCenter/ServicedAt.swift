@@ -43,6 +43,6 @@ public protocol ServiceHistory {
 	func remove(_ serviced: ServicedAt)
 	func removeAll()
 	
-	var history: [ServicedAt] { get }
+	var events: [ServicedAt] { get }
 	
 }
