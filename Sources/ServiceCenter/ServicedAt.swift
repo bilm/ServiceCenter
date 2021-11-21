@@ -16,7 +16,7 @@ public struct ServicedAt {
 	public var timestamp: Date = .now
 	public var duration: Duration = 0
 	
-	public mutating func split() { duration = timestamp.timeIntervalSinceNow }
+	public mutating func split() { duration = -timestamp.timeIntervalSinceNow }
 	
 }
 
