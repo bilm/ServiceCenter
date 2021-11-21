@@ -257,8 +257,6 @@ extension ServiceCenter {
 			serviced.split()
 			history?.add(serviced)
 			
-			logger.debug( "serviced: \(serviced)")
-			
 		}
 		
 		let urlRequest = try self.urlRequest(serviceRequest: serviceRequest)		
