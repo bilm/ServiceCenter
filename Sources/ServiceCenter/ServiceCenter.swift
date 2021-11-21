@@ -18,6 +18,7 @@ public actor ServiceCenter {
 	public typealias Substitutions = [Key: String]
 	public typealias Queries = [Key: Any]
 	public typealias QueryItems = [URLQueryItem]
+	public typealias Duration = Double
 
 	public typealias Output = (data: Data, response: URLResponse)
 	
@@ -71,6 +72,8 @@ public actor ServiceCenter {
 	
 	public var state: ServiceState
 	public func update(state: ServiceState) { self.state = state }
+	
+	public var history: ServiceHistory? 
 	
 	//
 	
@@ -246,7 +249,15 @@ extension ServiceCenter {
 	
 	public func data(_ serviceRequest: ServiceRequest) async throws ->Data {
 		
-		defer { logger.debug( "serviced: \(serviceRequest.service.name)") }
+		var serviced = ServicedAt(service: serviceRequest.service)
+		defer {
+			
+			serviced.split()
+			history?.add(serviced)
+			
+			logger.debug( "serviced: \(serviced)")
+			
+		}
 		
 		let urlRequest = try self.urlRequest(serviceRequest: serviceRequest)		
 		let output = try checkStatusCode( await session.data(for: urlRequest) )
