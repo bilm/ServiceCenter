@@ -16,6 +16,7 @@ public struct Service: Identifiable, Hashable {
 	
 	public let method: String
 	public let path: String
+	public var absoluteURL: URL? = nil
 	
 	public var mime: String? = nil 
 	public var accept: String? = nil
@@ -27,6 +28,11 @@ public struct Service: Identifiable, Hashable {
 extension Service {
 	
 	public static let zero = Service.GET("«»", path: "")
+	public static func absolute(_ name: Name, absoluteURL: URL, mime: String = "application/json", accept: String = "application/json", active: Bool = true) ->Service {
+		
+		Service(name: name, method: "GET", path: "", absoluteURL: absoluteURL, mime: mime, accept: accept, active: active)
+		
+	}
 	
 	//
 	//	NOTE -	These are convienence methods that make the method

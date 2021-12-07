@@ -233,6 +233,7 @@ extension ServiceCenter {
 		
 		// derivitives
 		public var path: String { service.path }
+		public var absoluteURL: URL? { service.absoluteURL }
 		public func subIn(string: String) ->String { substitutions.subIn(string: string) }
 		
 		public init(service: Service, body: Data? = nil, mime: String? = nil, substitutions: Substitutions = [:], queryItems: QueryItems = [], authorization: ServiceAuth? = nil, timeoutInterval: TimeInterval = 60.0) {
@@ -420,7 +421,9 @@ extension ServiceCenter {
 	
 	private func endpoint(serviceRequest: ServiceRequest) ->URL? {
 		
-		endpoint(
+		guard serviceRequest.absoluteURL == nil else { return serviceRequest.absoluteURL }
+		
+		return endpoint(
 			from: URL(
 				string: serviceRequest.subIn(string: serviceRequest.path),
 				relativeTo: mainURL
