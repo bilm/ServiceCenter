@@ -14,7 +14,6 @@ let package = Package(
     ],
     dependencies: [
 
-		.package(url: "git@github.com:bilm/DateFormats.git", .branch("swift-5_3")),
 		.package(url: "git@github.com:bilm/Logger.git", .branch("swift-5_3")),
 		.package(url: "git@github.com:bilm/Metadata.git", .branch("swift-5_3")),
 
@@ -27,7 +26,6 @@ let package = Package(
             dependencies: [
 				
 				.product(name: "Logger", package: "Logger"),
-				.product(name: "DateFormats", package: "DateFormats"),
 				.product(name: "Metadata", package: "Metadata"),
 				
 			]),

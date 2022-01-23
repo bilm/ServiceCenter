@@ -2,15 +2,6 @@
   "object": {
     "pins": [
       {
-        "package": "DateFormats",
-        "repositoryURL": "git@github.com:bilm/DateFormats.git",
-        "state": {
-          "branch": "swift-5_3",
-          "revision": "732aace3b3e1ea6ef0fd7a8ee61f9a3d6609a93c",
-          "version": null
-        }
-      },
-      {
         "package": "Logger",
         "repositoryURL": "git@github.com:bilm/Logger.git",
         "state": {
