@@ -9,8 +9,6 @@ import Foundation
 
 import Logger
 
-fileprivate let logger = Logger[ServiceCenter.self]
-
 public actor ServiceCenter {
 	
 	public typealias Key = String
@@ -90,9 +88,7 @@ public actor ServiceCenter {
 }
 
 //
-// MARK: Data - Public 
-//
-
+//	MARK:	Data - Public 
 extension ServiceCenter {
 	
 	public func data(
@@ -102,7 +98,8 @@ extension ServiceCenter {
 		substitutions: Substitutions = [:],
 		queryItems: QueryItems = [],
 		authorization: ServiceAuth? = nil,
-		timeoutInterval: TimeInterval = 60.0
+		timeoutInterval: TimeInterval = 60.0,
+		logger: Logger? = nil
 	)
 	async throws ->Data {
 
@@ -114,7 +111,8 @@ extension ServiceCenter {
 				substitutions: substitutions,
 				queryItems: queryItems,
 				authorization: authorization,
-				timeoutInterval: timeoutInterval
+				timeoutInterval: timeoutInterval,
+				logger: logger
 			)
 		)
 		
@@ -127,7 +125,8 @@ extension ServiceCenter {
 		substitutions: Substitutions = [:],
 		queryItems: QueryItems = [],
 		authorization: ServiceAuth? = nil,
-		timeoutInterval: TimeInterval = 60.0
+		timeoutInterval: TimeInterval = 60.0,
+		logger: Logger? = nil
 	)
 	async throws ->[Data] {
 		
@@ -142,7 +141,8 @@ extension ServiceCenter {
 					substitutions: substitutions,
 					queryItems: queryItems,
 					authorization: authorization,
-					timeoutInterval: timeoutInterval
+					timeoutInterval: timeoutInterval,
+					logger: logger
 				)
 
 			}
@@ -153,7 +153,7 @@ extension ServiceCenter {
 	
 }
 
-//	MARK: Model - Public
+//	MARK:	Model - Public
 extension ServiceCenter {
 	
 	public func model<Model>(
@@ -176,9 +176,9 @@ extension ServiceCenter {
 				substitutions: substitutions,
 				queryItems: queryItems,
 				authorization: authorization,
-				timeoutInterval: timeoutInterval
-			),
-			logger: logger
+				timeoutInterval: timeoutInterval,
+				logger: logger
+			)
 		)
 
 	}
@@ -206,11 +206,11 @@ extension ServiceCenter {
 					substitutions: substitutions,
 					queryItems: queryItems,
 					authorization: authorization,
-					timeoutInterval: timeoutInterval
+					timeoutInterval: timeoutInterval,
+					logger: logger
 				)
 
-			},
-			logger: logger
+			}
 			
 		)
 		
@@ -218,7 +218,7 @@ extension ServiceCenter {
 }
 
 
-// MARK: Requests - Private
+//	MARK:	Service Requests - Private
 extension ServiceCenter {
 	
 	public struct ServiceRequest {
@@ -230,13 +230,16 @@ extension ServiceCenter {
 		public var queryItems: QueryItems = []
 		public var authorization: ServiceAuth? = nil
 		public var timeoutInterval: TimeInterval = 60.0
+		public var logger: Logger? = nil
 		
 		// derivitives
 		public var path: String { service.path }
 		public var absoluteURL: URL? { service.absoluteURL }
 		public func subIn(string: String) ->String { substitutions.subIn(string: string) }
 		
-		public init(service: Service, body: Data? = nil, mime: String? = nil, substitutions: Substitutions = [:], queryItems: QueryItems = [], authorization: ServiceAuth? = nil, timeoutInterval: TimeInterval = 60.0) {
+		//
+		
+		public init(service: Service, body: Data? = nil, mime: String? = nil, substitutions: Substitutions = [:], queryItems: QueryItems = [], authorization: ServiceAuth? = nil, timeoutInterval: TimeInterval = 60.0, logger: Logger? = nil) {
 			
 			self.service = service
 			self.body = body
@@ -245,10 +248,29 @@ extension ServiceCenter {
 			self.queryItems = queryItems
 			self.authorization = authorization
 			self.timeoutInterval = timeoutInterval
+			self.logger = logger
+			
+		}
+		
+		//
+		
+		public func log(data: Data) {
+			
+			let logMessage = String(data: data, encoding: .utf8) ?? "«»"
+			logger?.debug( "\(logMessage)" )
+			
+		}
+		
+		public func log(urlRequest: URLRequest) {
+			
+			let logMessage = urlRequest
+			logger?.debug( "\(logMessage)" )
 			
 		}
 		
 	}
+	
+	//
 	
 	public func data(_ serviceRequest: ServiceRequest) async throws ->Data {
 		
@@ -260,20 +282,25 @@ extension ServiceCenter {
 			
 		}
 		
-		let urlRequest = try self.urlRequest(serviceRequest: serviceRequest)		
+		let urlRequest = try self.urlRequest(serviceRequest: serviceRequest)
+		serviceRequest.log(urlRequest: urlRequest)
+		
 		let output = try checkStatusCode( await session.data(for: urlRequest) )
+		serviceRequest.log(data: output.data)
+
 		return output.data
 		
 	}
-	public func model<Model>(_ serviceRequest: ServiceRequest, logger: Logger? = nil) async throws ->Model where Model: Codable, Model: ServiceModel {
+	public func model<Model>(_ serviceRequest: ServiceRequest) async throws ->Model where Model: Codable, Model: ServiceModel {
 		
 		let data = try await data(serviceRequest)
-		return try decode(data: data, logger: logger)
+		return try decode(data: data)
 		
 	}
 
 }
 
+//	MARK:	Gopher - Private
 extension ServiceCenter {
 	
 	public struct Gopher: AsyncSequence, AsyncIteratorProtocol {
@@ -296,7 +323,11 @@ extension ServiceCenter {
 		public mutating func next() async throws -> Data? {
 			
 			guard let request = nextRequest() else { return nil }
-			return try await center.data(request)
+			
+			let data = try await center.data(request)
+			request.log(data: data)
+			
+			return data
 			
 		}
 			
@@ -319,7 +350,7 @@ extension ServiceCenter {
 		
 	}
 	
-	public func model<Model>(_ serviceRequests: [ServiceRequest], logger: Logger? = nil) async throws ->[Model] where Model: Codable, Model: ServiceModel {
+	public func model<Model>(_ serviceRequests: [ServiceRequest]) async throws ->[Model] where Model: Codable, Model: ServiceModel {
 
 		var results: [Model] = []
 		
@@ -330,7 +361,7 @@ extension ServiceCenter {
 			.map {
 				
 				raw ->Model in
-				try self.decode(data: raw, logger: logger)
+				try self.decode(data: raw)
 				
 			}
 
@@ -346,11 +377,10 @@ extension ServiceCenter {
 	
 }
 
+//	MARK:	Decode
 extension ServiceCenter {
 	
-	public func decode<Model>(data: Data, logger: Logger? = nil) throws ->Model where Model: Codable, Model: ServiceModel {
-		
-		logger?.debug( String(data: data, encoding: .utf8) ?? "«»")
+	public func decode<Model>(data: Data) throws ->Model where Model: Codable, Model: ServiceModel {
 		
 		do {
 			switch Model.self {
@@ -371,6 +401,7 @@ extension ServiceCenter {
 	
 }
 
+//	MARK:	URLRequests - Private
 extension ServiceCenter {
 	
 	private func urlRequest(serviceRequest: ServiceRequest) throws ->URLRequest {
@@ -408,15 +439,13 @@ extension ServiceCenter {
 		request.setValue("\(body?.count ?? 0)", forHTTPHeaderField: "Content-Length")
 		request.httpBody = body
 		
-		logger.debug( "requested: \(request)" )
-
 		return request
 		
 	}
 	
 }
 
-// MARK: Endpoints - Private
+//	MARK:	Endpoints - Private
 extension ServiceCenter {
 	
 	private func endpoint(serviceRequest: ServiceRequest) ->URL? {
@@ -445,7 +474,7 @@ extension ServiceCenter {
 	
 }
 
-// MARK: Status Codes - Private
+//	MARK:	Status Codes - Private
 extension ServiceCenter {
 	
 	private func checkStatusCode(_ output: Output) throws ->Output {
