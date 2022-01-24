@@ -14,7 +14,7 @@ let package = Package(
     ],
     dependencies: [
 
-		.package(url: "git@github.com:bilm/Logger.git", .branch("swift-5_3")),
+		.package(url: "git@github.com:bilm/Logger.git", .branch("main")),
 
     ],
     targets: [
