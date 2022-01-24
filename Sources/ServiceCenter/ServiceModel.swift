@@ -5,7 +5,7 @@
 //  Created by Bil Moorhead on 9/19/21.
 //
 
-import UIKit
+import Foundation
 
 import Metadata
 
@@ -59,10 +59,28 @@ extension Nothing: ServiceModel {
 	
 }
 
+#if os(iOS)
+
 // MARK: -	UIKit
+
+import UIKit
+
 extension UIImage: ServiceModel {
 	
 	public var alternative: String { "\(self)" }
 	
 }
 
+#elseif os(macOS)
+
+// MARK: -	AppKit
+
+import AppKit
+
+extension NSImage: ServiceModel {
+	
+	public var alternative: String { "\(self)" }
+	
+}
+
+#endif

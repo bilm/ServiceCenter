@@ -8,7 +8,6 @@
 import Foundation
 
 import Logger
-import UIKit
 
 fileprivate let logger = Logger[ServiceCenter.self]
 
@@ -178,7 +177,8 @@ extension ServiceCenter {
 				queryItems: queryItems,
 				authorization: authorization,
 				timeoutInterval: timeoutInterval
-			)
+			),
+			logger: logger
 		)
 
 	}
