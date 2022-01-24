@@ -7,8 +7,6 @@
 
 import Foundation
 
-import Metadata
-
 public protocol ServiceModel {
 	
 	var alternative: String { get }
@@ -38,19 +36,6 @@ extension String: ServiceModel {
 //
 //
 //
-
-// MARK: - Metadata
-extension Metadata: ServiceModel {
-	
-	public var alternative: String { "\(self)" }
-	
-	public init(service: Service, serviceCenter: ServiceCenter) async throws {
-		
-		self = try await serviceCenter.model(service)
-		
-	}
-	
-}
 
 // MARK: -	Miscellany
 extension Nothing: ServiceModel {

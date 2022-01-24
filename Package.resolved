@@ -9,15 +9,6 @@
           "revision": "c513fd808b8adfc7a6ec21b9a8ebd49ddfe23f1f",
           "version": null
         }
-      },
-      {
-        "package": "Metadata",
-        "repositoryURL": "git@github.com:bilm/Metadata.git",
-        "state": {
-          "branch": "swift-5_3",
-          "revision": "eea50dc193039dc33263b414ea6c71f6df818232",
-          "version": null
-        }
       }
     ]
   },
