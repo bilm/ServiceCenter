@@ -7,13 +7,13 @@
 
 import Foundation
 
-public protocol ServiceState {
+public protocol ServiceState: Sendable {
 	
 	var version: String { get set }
 	
 }
 
-open class EmptyServiceState: ServiceState {
+open class EmptyServiceState: ServiceState, @unchecked Sendable {
 	
 	public var version = "0.0.0"
 	

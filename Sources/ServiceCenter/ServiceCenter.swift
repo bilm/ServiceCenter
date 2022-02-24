@@ -5,9 +5,9 @@
 //  Created by Bil Moorhead on 9/19/21.
 //
 
-import Foundation
+@preconcurrency import Foundation
 
-import Logger
+@preconcurrency import Logger
 
 public actor ServiceCenter {
 	
@@ -30,6 +30,7 @@ public actor ServiceCenter {
 		case outOfScope(String)
 		
 	}
+
 	public enum HTTPStatus: Error, CustomStringConvertible {
 		
 		case notOk(Int, Output)
@@ -73,15 +74,31 @@ public actor ServiceCenter {
 	public var history: ServiceHistory?
 	public func update(history: ServiceHistory?) { self.history = history }
 	
+	public var statusHandler: StatusHandler?
+	public func update(handler: StatusHandler?) { self.statusHandler = handler }
+	
 	//
 	
-	public init(configuration: URLSessionConfiguration = .default, auth: ServiceAuth = .nothing, mainURL: URL, state: ServiceState = EmptyServiceState(), history: ServiceHistory? = nil) {
+	public init(configuration: URLSessionConfiguration = .default, auth: ServiceAuth = .nothing, mainURL: URL, state: ServiceState = EmptyServiceState(), history: ServiceHistory? = nil, statusHandler: StatusHandler? = nil) {
 		
 		self.session = URLSession(configuration: configuration)
 		self.auth = auth
 		self.mainURL = mainURL
 		self.state = state
 		self.history = history
+		self.statusHandler = statusHandler
+		
+	}
+	public convenience init(serviceCenter: ServiceCenter) async {
+		
+		await self.init(
+			configuration: serviceCenter.session.configuration,
+			auth: serviceCenter.auth,
+			mainURL: serviceCenter.mainURL,
+			state: serviceCenter.state,
+			history: serviceCenter.history,
+			statusHandler: serviceCenter.statusHandler
+		)
 		
 	}
 
@@ -221,7 +238,7 @@ extension ServiceCenter {
 //	MARK:	Service Requests - Private
 extension ServiceCenter {
 	
-	public struct ServiceRequest {
+	public struct ServiceRequest : Sendable {
 
 		public let service: Service
 		public let body: Data?
@@ -285,7 +302,7 @@ extension ServiceCenter {
 		let urlRequest = try self.urlRequest(serviceRequest: serviceRequest)
 		serviceRequest.log(urlRequest: urlRequest)
 		
-		let output = try checkStatusCode( await session.data(for: urlRequest) )
+		let output = try await checkStatusCode( session.data(for: urlRequest), serviceRequest: serviceRequest )
 		serviceRequest.log(data: output.data)
 
 		return output.data
@@ -477,43 +494,41 @@ extension ServiceCenter {
 //	MARK:	Status Codes - Private
 extension ServiceCenter {
 	
-	private func checkStatusCode(_ output: Output) throws ->Output {
+	private func checkStatusCode(_ output: Output, serviceRequest: ServiceRequest) async throws ->Output {
 		
 		guard let response = output.response as? HTTPURLResponse else { return output }
 		let statusCode = response.statusCode
 		
 		//
-		//	LINK - https://tools.ietf.org/html/rfc7231#section-6
-		switch statusCode {
-		case 100..<200: throw HTTPStatus.continued(statusCode,output)
-		case 200..<300: return output
-		case 300..<400: throw HTTPStatus.redirect(statusCode,output)
-		case 400..<500: throw HTTPStatus.client(statusCode,output)
-		case 500..<600: throw HTTPStatus.server(statusCode,output)
-		default: 		throw HTTPStatus.notOk(statusCode,output)
-		}
-		//	END-LINK
+		//	INFO	HTTP status codes
+		//	LINK -	https://tools.ietf.org/html/rfc7231#section-6
 		//
+		
+		var httpStatus: HTTPStatus = .notOk(statusCode, output)
+		
+		switch statusCode {
+		case 100..<200: httpStatus = .continued(statusCode,output)
+		case 200..<300: return output
+		case 300..<400: httpStatus = .redirect(statusCode,output)
+		case 400..<500: httpStatus = .client(statusCode,output)
+		case 500..<600: httpStatus = .server(statusCode,output)
+		default: 		break
+		}
+
+		//
+		//	INFO -	If there is a handler, let it try to handle the
+		//			the status code appropriately.
+		//
+		//			The service request is also passed, in case the handler
+		//			has need of the information therein.
+		//
+		//			The most common case is for 401/403's that are returned
+		//			by the OAUTH folks.
+		//
+		guard let handler = statusHandler else { throw httpStatus }		
+		return try await handler.handle(status: httpStatus, for: serviceRequest)
 		
 	}
 	
-	private func checkErrorResponse<M>( _ output: Output, errorModel: M.Type) throws ->Output where M: Error & Decodable{
-		
-		do { return try checkStatusCode(output) }
-		catch {
-			
-			let data: Data
-			switch error as? HTTPStatus {
-				
-			case .client(_, let output): data = output.data
-			case .server(_, let output): data = output.data
-				
-			default: throw error
-				
-			}
-			throw try ServiceCenterJSON.decoderNWK.decode(errorModel, from: data)
-
-		}
-	}
-
+	
 }

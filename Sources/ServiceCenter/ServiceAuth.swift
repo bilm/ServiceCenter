@@ -5,9 +5,9 @@
 //  Created by Bil Moorhead on 10/11/21.
 //
 
-import Foundation
+@preconcurrency import Foundation
 
-public enum ServiceAuth {
+public enum ServiceAuth : Sendable {
 	
 	case nothing
 	case basic(URLCredential)

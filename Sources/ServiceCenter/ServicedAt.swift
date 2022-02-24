@@ -5,9 +5,9 @@
 //  Created by Bil Moorhead on 11/20/21.
 //
 
-import Foundation
+@preconcurrency import Foundation
 
-public struct ServicedAt {
+public struct ServicedAt: Sendable {
 	
 	public typealias Duration = Double
 	
@@ -37,7 +37,7 @@ extension ServicedAt: Comparable {
 
 }
 
-public protocol ServiceHistory {
+public protocol ServiceHistory: Sendable {
 	
 	func add(_ serviced: ServicedAt)
 	func remove(_ serviced: ServicedAt)

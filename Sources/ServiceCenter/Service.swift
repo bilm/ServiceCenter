@@ -5,9 +5,9 @@
 //  Created by Bil Moorhead on 9/19/21.
 //
 
-import Foundation
+@preconcurrency import Foundation
 
-public struct Service: Identifiable, Hashable {
+public struct Service: Identifiable, Hashable, Sendable {
 	
 	public typealias Name = String
 	
