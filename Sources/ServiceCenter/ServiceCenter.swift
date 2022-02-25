@@ -526,7 +526,7 @@ extension ServiceCenter {
 		//			by the OAUTH folks.
 		//
 		guard let handler = statusHandler else { throw httpStatus }		
-		return try await handler.handle(status: httpStatus, for: serviceRequest)
+		return try await handler.handle(status: httpStatus, for: serviceRequest, on: self)
 		
 	}
 	
