@@ -289,6 +289,18 @@ extension ServiceCenter {
 	
 	//
 	
+	public func output(_ serviceRequest: ServiceRequest) async throws ->Output {
+		
+		let urlRequest = try self.urlRequest(serviceRequest: serviceRequest)
+		serviceRequest.log(urlRequest: urlRequest)
+		
+		let output = try await checkStatusCode( session.data(for: urlRequest), serviceRequest: serviceRequest )
+		serviceRequest.log(data: output.data)
+
+		return output
+		
+	}
+	
 	public func data(_ serviceRequest: ServiceRequest) async throws ->Data {
 		
 		var serviced = ServicedAt(service: serviceRequest.service)
@@ -299,12 +311,7 @@ extension ServiceCenter {
 			
 		}
 		
-		let urlRequest = try self.urlRequest(serviceRequest: serviceRequest)
-		serviceRequest.log(urlRequest: urlRequest)
-		
-		let output = try await checkStatusCode( session.data(for: urlRequest), serviceRequest: serviceRequest )
-		serviceRequest.log(data: output.data)
-
+		let output = try await output(serviceRequest)
 		return output.data
 		
 	}
@@ -513,6 +520,7 @@ extension ServiceCenter {
 		case 400..<500: httpStatus = .client(statusCode,output)
 		case 500..<600: httpStatus = .server(statusCode,output)
 		default: 		break
+			
 		}
 
 		//
