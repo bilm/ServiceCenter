@@ -9,12 +9,18 @@
 
 public enum ServiceAuth : Sendable {
 	
+	public typealias Authorization = String
+	
 	case nothing
 	case basic(URLCredential)
 	case bearer(URLCredential)
 	case absolute(String,String)
 	
-	public var authorization: String? {
+	//
+	//	INFO -	This is what is expect by the HTTP 'Authorization' header field.
+	//			Currently only Basic and Bearer are implicitly captured.
+	//			
+	public var authorization: Authorization? {
 		
 		switch self {
 			
@@ -24,37 +30,6 @@ public enum ServiceAuth : Sendable {
 		case .absolute(let keyword, let token):	return "\(keyword) \(token)"
 
 		}
-		
-	}
-	
-	public static var superuser: ServiceAuth { .basic(.superuser) }
-	
-}
-
-extension URLCredential {
-	
-	public static var superuser: URLCredential {
-		
-		URLCredential(
-			user: "superuser",
-			password: "5up3ru53r",
-			persistence: .forSession)
-		
-	}
-
-}
-
-extension URLCredential {
-	
-	public var basic: String? {
-		
-		guard let user = user, let password = password else { return nil }
-		return "Basic \(Data("\(user):\(password)".utf8).base64EncodedString())"
-		
-	}
-	public var bearer: String? { 
-		
-		password.flatMap { "Bearer \($0)" }
 		
 	}
 	

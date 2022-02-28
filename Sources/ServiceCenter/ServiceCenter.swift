@@ -62,11 +62,12 @@ public actor ServiceCenter {
 	
 	public let session: URLSession
 
-	public var auth: ServiceAuth
-	public func update(auth: ServiceAuth) { self.auth = auth }
-	
 	public var mainURL: URL
 	public func update(url: URL) { self.mainURL = url }
+	
+	public var curator: ServiceCurator
+	public func update(curator: ServiceCurator) { self.curator = curator }
+	public func update(auth: ServiceAuth) { curator.update(serviceAuth: auth) }
 	
 	public var state: ServiceState
 	public func update(state: ServiceState) { self.state = state }
@@ -74,30 +75,25 @@ public actor ServiceCenter {
 	public var history: ServiceHistory?
 	public func update(history: ServiceHistory?) { self.history = history }
 	
-	public var statusHandler: StatusHandler?
-	public func update(handler: StatusHandler?) { self.statusHandler = handler }
-	
 	//
 	
-	public init(configuration: URLSessionConfiguration = .default, auth: ServiceAuth = .nothing, mainURL: URL, state: ServiceState = EmptyServiceState(), history: ServiceHistory? = nil, statusHandler: StatusHandler? = nil) {
+	public init(configuration: URLSessionConfiguration = .default, mainURL: URL, curator: ServiceCurator = BasicCurator(), state: ServiceState = EmptyServiceState(), history: ServiceHistory? = nil) {
 		
 		self.session = URLSession(configuration: configuration)
-		self.auth = auth
 		self.mainURL = mainURL
+		self.curator = curator
 		self.state = state
 		self.history = history
-		self.statusHandler = statusHandler
 		
 	}
 	public convenience init(serviceCenter: ServiceCenter) async {
 		
 		await self.init(
 			configuration: serviceCenter.session.configuration,
-			auth: serviceCenter.auth,
 			mainURL: serviceCenter.mainURL,
+			curator: serviceCenter.curator,
 			state: serviceCenter.state,
-			history: serviceCenter.history,
-			statusHandler: serviceCenter.statusHandler
+			history: serviceCenter.history
 		)
 		
 	}
@@ -456,7 +452,7 @@ extension ServiceCenter {
 		request.setValue(service.accept, forHTTPHeaderField: "Accept")
 		request.setValue((mime ?? service.mime), forHTTPHeaderField: "Content-Type")
 		
-		(authorization ?? auth).authorization.flatMap {
+		(authorization ?? curator.serviceAuth).authorization.flatMap {
 			request.setValue($0, forHTTPHeaderField: "Authorization")
 		}
 		
@@ -524,17 +520,18 @@ extension ServiceCenter {
 		}
 
 		//
-		//	INFO -	If there is a handler, let it try to handle the
-		//			the status code appropriately.
+		//	INFO -	Let the curator handle the the status code appropriately.
 		//
-		//			The service request is also passed, in case the handler
-		//			has need of the information therein.
+		//			The service request is passed, in case the curator has need of the information therein.
+		//			The service center is passed, in case the curator has need make API calls.
 		//
-		//			The most common case is for 401/403's that are returned
-		//			by the OAUTH folks.
+		//			The most common case is for 401/403's that are returned by the OAUTH folks.
 		//
-		guard let handler = statusHandler else { throw httpStatus }		
-		return try await handler.handle(status: httpStatus, for: serviceRequest, on: self)
+		return try await curator.handle(
+			status: httpStatus,
+			for: serviceRequest,
+			on: self
+		)
 		
 	}
 	
