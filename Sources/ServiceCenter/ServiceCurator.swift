@@ -57,7 +57,10 @@ public final class BasicCurator: ServiceCurator, @unchecked Sendable {
 	
 	public func handle(status: HTTPStatus, for request: Request, on center: ServiceCenter) async throws -> Output {
 		
-		throw status
+		switch status {
+		case .ok(_, let output):	return output
+		default:					throw status
+		}
 		
 	}
 

@@ -35,6 +35,7 @@ public actor ServiceCenter {
 		
 		case notOk(Int, Output)
 		case continued(Int, Output)
+		case ok(Int, Output)
 		case redirect(Int, Output)
 		case client(Int, Output)
 		case server(Int, Output)
@@ -51,6 +52,7 @@ public actor ServiceCenter {
 				
 			case let .notOk(statusCode, output): return message(statusCode: statusCode, output: output)
 			case let .continued(statusCode, output): return message(statusCode: statusCode, output: output)
+			case let .ok(statusCode, output): return message(statusCode: statusCode, output: output)
 			case let .redirect(statusCode, output): return message(statusCode: statusCode, output: output)
 			case let .client(statusCode, output): return message(statusCode: statusCode, output: output)
 			case let .server(statusCode, output): return message(statusCode: statusCode, output: output)
@@ -511,7 +513,7 @@ extension ServiceCenter {
 		
 		switch statusCode {
 		case 100..<200: httpStatus = .continued(statusCode,output)
-		case 200..<300: return output
+		case 200..<300: httpStatus = .ok(statusCode,output)
 		case 300..<400: httpStatus = .redirect(statusCode,output)
 		case 400..<500: httpStatus = .client(statusCode,output)
 		case 500..<600: httpStatus = .server(statusCode,output)
