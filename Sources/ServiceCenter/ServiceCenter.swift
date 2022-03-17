@@ -28,6 +28,7 @@ public actor ServiceCenter {
 		case invalidEndpoint
 		case invalidService
 		case outOfScope(String)
+		case versionMismatch(String, String, String)
 		
 	}
 
