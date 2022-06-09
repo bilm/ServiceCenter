@@ -5,7 +5,7 @@
 //  Created by Bil Moorhead on 11/20/21.
 //
 
-@preconcurrency import Foundation
+import Foundation
 
 public struct ServicedAt: Sendable {
 	

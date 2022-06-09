@@ -5,7 +5,7 @@
 //  Created by Bil Moorhead on 9/19/21.
 //
 
-@preconcurrency import Foundation
+import Foundation
 
 public struct Service: Identifiable, Hashable, Sendable {
 	

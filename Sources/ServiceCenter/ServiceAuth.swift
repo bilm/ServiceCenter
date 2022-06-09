@@ -5,7 +5,7 @@
 //  Created by Bil Moorhead on 10/11/21.
 //
 
-@preconcurrency import Foundation
+import Foundation
 
 public enum ServiceAuth : Sendable {
 	

@@ -5,7 +5,7 @@
 //  Created by Bil Moorhead on 9/19/21.
 //
 
-@preconcurrency import Foundation
+import Foundation
 
 @preconcurrency import Logger
 
@@ -384,7 +384,7 @@ extension ServiceCenter {
 			.map {
 				
 				raw ->Model in
-				try self.decode(data: raw)
+				try await self.decode(data: raw)
 				
 			}
 
