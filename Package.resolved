@@ -3,7 +3,7 @@
     "pins": [
       {
         "package": "Logger",
-        "repositoryURL": "git@github.com:bilm/Logger.git",
+        "repositoryURL": "git@github.com:AlitheonDotCom/Logger.git",
         "state": {
           "branch": "main",
           "revision": "576fe34fbc41df065937a9abcd943dc724b75e94",
