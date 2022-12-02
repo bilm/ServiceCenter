@@ -89,7 +89,7 @@ public actor ServiceCenter {
 		self.history = history
 		
 	}
-	public convenience init(serviceCenter: ServiceCenter) async {
+	public init(serviceCenter: ServiceCenter) async {
 		
 		await self.init(
 			configuration: serviceCenter.session.configuration,
@@ -128,7 +128,7 @@ extension ServiceCenter {
 				queryItems: queryItems,
 				authorization: authorization,
 				timeoutInterval: timeoutInterval,
-				logger: logger
+				logger: logger ?? state.logger
 			)
 		)
 		
@@ -158,7 +158,7 @@ extension ServiceCenter {
 					queryItems: queryItems,
 					authorization: authorization,
 					timeoutInterval: timeoutInterval,
-					logger: logger
+					logger: logger ?? state.logger
 				)
 
 			}
@@ -193,7 +193,7 @@ extension ServiceCenter {
 				queryItems: queryItems,
 				authorization: authorization,
 				timeoutInterval: timeoutInterval,
-				logger: logger
+				logger: logger ?? state.logger
 			)
 		)
 
@@ -223,7 +223,7 @@ extension ServiceCenter {
 					queryItems: queryItems,
 					authorization: authorization,
 					timeoutInterval: timeoutInterval,
-					logger: logger
+					logger: logger ?? state.logger
 				)
 
 			}
