@@ -72,20 +72,20 @@ public actor ServiceCenter {
 	public func update(curator: ServiceCurator) { self.curator = curator }
 	public func update(auth: ServiceAuth) { curator.update(serviceAuth: auth) }
 	
-	public var state: ServiceState
-	public func update(state: ServiceState) { self.state = state }
+	public var configuration: ServiceConfiguration
+	public func update(configuration: ServiceConfiguration) { self.configuration = configuration }
 	
 	public var history: ServiceHistory?
 	public func update(history: ServiceHistory?) { self.history = history }
 	
 	//
 	
-	public init(configuration: URLSessionConfiguration = .default, mainURL: URL, curator: ServiceCurator = BasicCurator(), state: ServiceState = EmptyServiceState(), history: ServiceHistory? = nil) {
+	public init(configuration: URLSessionConfiguration = .default, mainURL: URL, curator: ServiceCurator = BasicCurator(), serviceConfig: ServiceConfiguration = EmptyServiceConfiguration(), history: ServiceHistory? = nil) {
 		
 		self.session = URLSession(configuration: configuration)
 		self.mainURL = mainURL
 		self.curator = curator
-		self.state = state
+		self.configuration = serviceConfig
 		self.history = history
 		
 	}
@@ -95,7 +95,7 @@ public actor ServiceCenter {
 			configuration: serviceCenter.session.configuration,
 			mainURL: serviceCenter.mainURL,
 			curator: serviceCenter.curator,
-			state: serviceCenter.state,
+			serviceConfig: serviceCenter.configuration,
 			history: serviceCenter.history
 		)
 		
@@ -128,7 +128,7 @@ extension ServiceCenter {
 				queryItems: queryItems,
 				authorization: authorization,
 				timeoutInterval: timeoutInterval,
-				logger: logger ?? state.logger
+				logger: logger ?? configuration.logger
 			)
 		)
 		
@@ -158,7 +158,7 @@ extension ServiceCenter {
 					queryItems: queryItems,
 					authorization: authorization,
 					timeoutInterval: timeoutInterval,
-					logger: logger ?? state.logger
+					logger: logger ?? configuration.logger
 				)
 
 			}
@@ -193,7 +193,7 @@ extension ServiceCenter {
 				queryItems: queryItems,
 				authorization: authorization,
 				timeoutInterval: timeoutInterval,
-				logger: logger ?? state.logger
+				logger: logger ?? configuration.logger
 			)
 		)
 
@@ -223,7 +223,7 @@ extension ServiceCenter {
 					queryItems: queryItems,
 					authorization: authorization,
 					timeoutInterval: timeoutInterval,
-					logger: logger ?? state.logger
+					logger: logger ?? configuration.logger
 				)
 
 			}
