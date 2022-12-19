@@ -15,6 +15,7 @@ public actor ServiceCenter {
 	public typealias Substitutions = [Key: String]
 	public typealias Queries = [Key: Any]
 	public typealias QueryItems = [URLQueryItem]
+	public typealias Headers = [String:String]
 	public typealias Duration = Double
 
 	public typealias Output = (data: Data, response: URLResponse)
@@ -113,6 +114,7 @@ extension ServiceCenter {
 		mime: String? = nil,
 		substitutions: Substitutions = [:],
 		queryItems: QueryItems = [],
+		headers: Headers = [:],
 		authorization: ServiceAuth? = nil,
 		timeoutInterval: TimeInterval = 60.0,
 		logger: Logger? = nil
@@ -126,6 +128,7 @@ extension ServiceCenter {
 				mime: mime,
 				substitutions: substitutions,
 				queryItems: queryItems,
+				headers: headers,
 				authorization: authorization,
 				timeoutInterval: timeoutInterval,
 				logger: logger ?? configuration.logger
@@ -140,6 +143,7 @@ extension ServiceCenter {
 		mime: String? = nil,
 		substitutions: Substitutions = [:],
 		queryItems: QueryItems = [],
+		headers: Headers = [:],
 		authorization: ServiceAuth? = nil,
 		timeoutInterval: TimeInterval = 60.0,
 		logger: Logger? = nil
@@ -156,6 +160,7 @@ extension ServiceCenter {
 					mime: mime,
 					substitutions: substitutions,
 					queryItems: queryItems,
+					headers: headers,
 					authorization: authorization,
 					timeoutInterval: timeoutInterval,
 					logger: logger ?? configuration.logger
@@ -178,6 +183,7 @@ extension ServiceCenter {
 		mime: String? = nil,
 		substitutions: Substitutions = [:],
 		queryItems: QueryItems = [],
+		headers: Headers = [:],
 		authorization: ServiceAuth? = nil,
 		timeoutInterval: TimeInterval = 60.0,
 		logger: Logger? = nil
@@ -191,6 +197,7 @@ extension ServiceCenter {
 				mime: mime,
 				substitutions: substitutions,
 				queryItems: queryItems,
+				headers: headers,
 				authorization: authorization,
 				timeoutInterval: timeoutInterval,
 				logger: logger ?? configuration.logger
@@ -205,6 +212,7 @@ extension ServiceCenter {
 		mime: String? = nil,
 		substitutions: Substitutions = [:],
 		queryItems: QueryItems = [],
+		headers: Headers = [:],
 		authorization: ServiceAuth? = nil,
 		timeoutInterval: TimeInterval = 60.0,
 		logger: Logger? = nil
@@ -221,6 +229,7 @@ extension ServiceCenter {
 					mime: mime,
 					substitutions: substitutions,
 					queryItems: queryItems,
+					headers: headers,
 					authorization: authorization,
 					timeoutInterval: timeoutInterval,
 					logger: logger ?? configuration.logger
@@ -244,6 +253,7 @@ extension ServiceCenter {
 		public let mime: String?
 		public var substitutions: Substitutions = [:]
 		public var queryItems: QueryItems = []
+		public var headers: Headers = [:]
 		public var authorization: ServiceAuth? = nil
 		public var timeoutInterval: TimeInterval = 60.0
 		public var logger: Logger? = nil
@@ -255,13 +265,14 @@ extension ServiceCenter {
 		
 		//
 		
-		public init(service: Service, body: Data? = nil, mime: String? = nil, substitutions: Substitutions = [:], queryItems: QueryItems = [], authorization: ServiceAuth? = nil, timeoutInterval: TimeInterval = 60.0, logger: Logger? = nil) {
+		public init(service: Service, body: Data? = nil, mime: String? = nil, substitutions: Substitutions = [:], queryItems: QueryItems = [], headers: Headers = [:], authorization: ServiceAuth? = nil, timeoutInterval: TimeInterval = 60.0, logger: Logger? = nil) {
 			
 			self.service = service
 			self.body = body
 			self.mime = mime
 			self.substitutions = substitutions
 			self.queryItems = queryItems
+			self.headers = headers
 			self.authorization = authorization
 			self.timeoutInterval = timeoutInterval
 			self.logger = logger
@@ -281,6 +292,12 @@ extension ServiceCenter {
 			
 			let logMessage = urlRequest
 			logger?.debug( "\(logMessage)" )
+			urlRequest.httpBody.flatMap { 
+				
+				guard let body = String(data: $0, encoding: .utf8) else { return }
+				logger?.debug("\(body)")
+				
+			}
 			
 		}
 		
@@ -434,6 +451,7 @@ extension ServiceCenter {
 			endpoint: endpoint(serviceRequest: serviceRequest),
 			body: serviceRequest.body,
 			mime: serviceRequest.mime,
+			headers: serviceRequest.headers,
 			authorization: serviceRequest.authorization,
 			timeoutInterval: serviceRequest.timeoutInterval
 		)
@@ -444,6 +462,7 @@ extension ServiceCenter {
 		endpoint: URL?,
 		body: Data?,
 		mime: String? = nil,
+		headers: Headers = [:],
 		authorization: ServiceAuth?,
 		timeoutInterval: TimeInterval = 60.0
 	) throws ->URLRequest {
@@ -461,6 +480,13 @@ extension ServiceCenter {
 		
 		request.setValue("\(body?.count ?? 0)", forHTTPHeaderField: "Content-Length")
 		request.httpBody = body
+		
+		headers.forEach {
+			
+			key, value in
+			request.setValue(value, forHTTPHeaderField: key)
+			
+		}
 		
 		return request
 		
