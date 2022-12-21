@@ -81,9 +81,9 @@ public actor ServiceCenter {
 	
 	//
 	
-	public init(configuration: URLSessionConfiguration = .default, mainURL: URL, curator: ServiceCurator = BasicCurator(), serviceConfig: ServiceConfiguration = EmptyServiceConfiguration(), history: ServiceHistory? = nil) {
+	public init(configuration: URLSessionConfiguration = .default, delegate: URLSessionDelegate? = nil, mainURL: URL, curator: ServiceCurator = BasicCurator(), serviceConfig: ServiceConfiguration = EmptyServiceConfiguration(), history: ServiceHistory? = nil) {
 		
-		self.session = URLSession(configuration: configuration)
+		self.session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
 		self.mainURL = mainURL
 		self.curator = curator
 		self.configuration = serviceConfig
