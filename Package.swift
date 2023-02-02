@@ -14,7 +14,7 @@ let package = Package(
     ],
     dependencies: [
 
-		.package(url: "https://github.com/AlitheonDotCom/Logger.git", .branch("main")),
+		.package(url: "https://gitlab.com/alitheon/logger.git", .branch("main")),
 
     ],
     targets: [
