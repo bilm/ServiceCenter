@@ -7,7 +7,7 @@
 
 import Foundation
 
-@preconcurrency import Logger
+import Logger
 
 public actor ServiceCenter {
 	
@@ -246,6 +246,38 @@ extension ServiceCenter {
 //	MARK:	Service Requests - Private
 extension ServiceCenter {
 	
+	public struct ServiceLogger: Sendable {
+		
+		var logger: Logger? = nil
+		
+		//
+		
+		public func log(output: Output) {
+			
+			log(data: output.data)
+			
+		}
+		public func log(data: Data) {
+			
+			let logMessage = String(data: data, encoding: .utf8) ?? "«»"
+			logger?.debug( "\(logMessage)" )
+			
+		}
+		public func log(urlRequest: URLRequest) {
+			
+			let logMessage = urlRequest
+			logger?.debug( "\(logMessage)" )
+			urlRequest.httpBody.flatMap { 
+				
+				guard let body = String(data: $0, encoding: .utf8) else { return }
+				logger?.debug("\(body)")
+				
+			}
+			
+		}
+		
+
+	}
 	public struct ServiceRequest : Sendable {
 
 		public let service: Service
@@ -257,6 +289,8 @@ extension ServiceCenter {
 		public var authorization: ServiceAuth? = nil
 		public var timeoutInterval: TimeInterval = 60.0
 		public var logger: Logger? = nil
+		
+		public let serviceLogger: ServiceLogger
 		
 		// derivitives
 		public var path: String { service.path }
@@ -277,41 +311,29 @@ extension ServiceCenter {
 			self.timeoutInterval = timeoutInterval
 			self.logger = logger
 			
+			self.serviceLogger = ServiceLogger(logger: logger)
+			
 		}
 		
 		//
 		
-		public func log(data: Data) {
-			
-			let logMessage = String(data: data, encoding: .utf8) ?? "«»"
-			logger?.debug( "\(logMessage)" )
-			
-		}
-		
-		public func log(urlRequest: URLRequest) {
-			
-			let logMessage = urlRequest
-			logger?.debug( "\(logMessage)" )
-			urlRequest.httpBody.flatMap { 
-				
-				guard let body = String(data: $0, encoding: .utf8) else { return }
-				logger?.debug("\(body)")
-				
-			}
-			
-		}
+		public func log(output: Output) { serviceLogger.log(output: output) }
+		public func log(data: Data) { serviceLogger.log(data: data) }
+		public func log(urlRequest: URLRequest) { serviceLogger.log(urlRequest: urlRequest) }
 		
 	}
 	
 	//
 	
-	public func output(_ serviceRequest: ServiceRequest) async throws ->Output {
+	nonisolated public func output(_ serviceRequest: ServiceRequest) async throws ->Output {
 		
-		let urlRequest = try self.urlRequest(serviceRequest: serviceRequest)
+		let urlRequest = try await self.urlRequest(serviceRequest: serviceRequest)
 		serviceRequest.log(urlRequest: urlRequest)
 		
-		let output = try await checkStatusCode( session.data(for: urlRequest), serviceRequest: serviceRequest )
-		serviceRequest.log(data: output.data)
+		var output: Output = try await session.data(for: urlRequest)
+		output = try await checkStatusCode(output, serviceRequest: serviceRequest)
+		
+		serviceRequest.log(output: output)
 
 		return output
 		
@@ -334,7 +356,7 @@ extension ServiceCenter {
 	public func model<Model>(_ serviceRequest: ServiceRequest) async throws ->Model where Model: Codable, Model: ServiceModel {
 		
 		let data = try await data(serviceRequest)
-		return try decode(data: data)
+		return try decode(data: data, logger: serviceRequest.logger)
 		
 	}
 
@@ -389,7 +411,6 @@ extension ServiceCenter {
 		return results
 		
 	}
-	
 	public func model<Model>(_ serviceRequests: [ServiceRequest]) async throws ->[Model] where Model: Codable, Model: ServiceModel {
 
 		var results: [Model] = []
@@ -420,7 +441,7 @@ extension ServiceCenter {
 //	MARK:	Decode
 extension ServiceCenter {
 	
-	public func decode<Model>(data: Data) throws ->Model where Model: Codable, Model: ServiceModel {
+	public func decode<Model>(data: Data, logger: Logger? = nil) throws ->Model where Model: Codable, Model: ServiceModel {
 		
 		do {
 			switch Model.self {
@@ -432,7 +453,9 @@ extension ServiceCenter {
 		}
 		catch {
 			
-			print(String(data: data, encoding: .utf8) ?? "«»")
+			let message = String(data: data, encoding: .utf8)
+			logger?.error( message ?? "«»")
+			
 			throw error
 			
 		}

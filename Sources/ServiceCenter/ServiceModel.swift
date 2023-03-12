@@ -7,29 +7,30 @@
 
 import Foundation
 
-public protocol ServiceModel {
+public protocol ServiceModel: Sendable {
 	
 	var alternative: String { get }
 	
 }
 
+public typealias CodableServiceModel = ServiceModel & Codable
+
 //
 
 
-extension Array: ServiceModel where Element:ServiceModel {
+extension Array: ServiceModel where Element: ServiceModel {
 	
 	public var alternative: String { map { $0.alternative }.joined(separator: "\n") }
 	
 }
 extension Data: ServiceModel {
 	
-	public var alternative: String {
-		String(data: self, encoding: .utf8) ?? self.hex }
+	public var alternative: String { String(data: self, encoding: .utf8) ?? self.hex }
 	
 }
 extension String: ServiceModel {
 	
-	public var alternative: String { return self }
+	public var alternative: String { self }
 	
 }
 
@@ -38,17 +39,12 @@ extension String: ServiceModel {
 //
 
 // MARK: -	Miscellany
-extension Nothing: ServiceModel {
-	
-	public var alternative: String { "" }
-	
-}
 
 #if os(iOS)
 
 // MARK: -	UIKit
 
-import UIKit
+import class UIKit.UIImage
 
 extension UIImage: ServiceModel {
 	
@@ -60,7 +56,7 @@ extension UIImage: ServiceModel {
 
 // MARK: -	AppKit
 
-import AppKit
+import class AppKit.NSImage
 
 extension NSImage: ServiceModel {
 	

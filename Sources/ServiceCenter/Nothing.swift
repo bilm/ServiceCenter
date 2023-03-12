@@ -8,10 +8,12 @@
 
 import Foundation
 
-public struct Nothing: Codable, Error {
+public struct Nothing: CodableServiceModel, Error {
 
 	///	This represents a Okay (200) HTTP return with no Body
 	///	This represents a Error (400 or 500) HTTP return we are ignoring the Body
 	
-	public init() {}
+	public init() {}	
+	public var alternative: String { "" }
+	
 }

@@ -1,16 +1,14 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "Logger",
-        "repositoryURL": "https://gitlab.com/alitheon/logger.git",
-        "state": {
-          "branch": "main",
-          "revision": "576fe34fbc41df065937a9abcd943dc724b75e94",
-          "version": null
-        }
+  "pins" : [
+    {
+      "identity" : "logger",
+      "kind" : "remoteSourceControl",
+      "location" : "https://gitlab.com/alitheon/logger.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "625de862b218bc833f0b6a31d480034dcd30f4e9"
       }
-    ]
-  },
-  "version": 1
+    }
+  ],
+  "version" : 2
 }

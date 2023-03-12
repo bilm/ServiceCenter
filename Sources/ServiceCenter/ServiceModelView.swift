@@ -37,7 +37,12 @@ struct ServiceModelView_Previews: PreviewProvider {
     static var previews: some View {
 		
 		ServiceModelView(serviceModel: .constant("ServiceModel"))
-		
+		.previewDisplayName("Single String")
+		ServiceModelView(serviceModel: .constant(Data("ServiceModel".utf8)))
+			.previewDisplayName("Single Data")
+		ServiceModelView(serviceModel: .constant(["ServiceModel","ServiceModel"]))
+			.previewDisplayName("Multiple Strings")
+
     }
 	
 }
